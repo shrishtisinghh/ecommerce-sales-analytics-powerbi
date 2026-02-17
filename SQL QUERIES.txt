@@ -1,0 +1,166 @@
+CREATE TABLE fact_ecommerce_sales (
+    Transaction_ID INT,
+    User_Name VARCHAR(100),
+    Age INT,
+    Country VARCHAR(50),
+    Product_Category VARCHAR(50),
+    Purchase_Amount DECIMAL(10,2),
+    Payment_Method VARCHAR(30),
+    Transaction_Date DATE,
+    Year INT,
+    Month INT,
+    Month_Name VARCHAR(20),
+    Age_Group VARCHAR(20)
+);
+
+LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/ecommerce_transactions_cleaned.csv'
+INTO TABLE fact_ecommerce_sales
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS;
+
+SELECT count(*) FROM fact_ecommerce_sales;
+
+SELECT 
+    MIN(Transaction_Date) AS min_date,
+    MAX(Transaction_Date) AS max_date
+FROM fact_ecommerce_sales;
+
+
+SELECT 
+    COUNT(*) AS null_amounts
+FROM fact_ecommerce_sales
+WHERE Purchase_Amount IS NULL OR Purchase_Amount = 0;
+
+SELECT COUNT(DISTINCT Transaction_ID) FROM fact_ecommerce_sales;
+
+
+SELECT 
+    COUNT(Transaction_ID) AS total_orders
+FROM fact_ecommerce_sales;
+SELECT 
+    COUNT(Transaction_ID) AS total_orders
+FROM fact_ecommerce_sales;
+
+SELECT 
+    SUM(Purchase_Amount) AS total_revenue
+FROM fact_ecommerce_sales;
+
+SELECT 
+    AVG(Purchase_Amount) AS avg_order_value
+FROM fact_ecommerce_sales;
+
+SELECT 
+    Product_Category,
+    SUM(Purchase_Amount) AS revenue
+FROM fact_ecommerce_sales
+GROUP BY Product_Category
+ORDER BY revenue DESC;
+
+SELECT 
+    Payment_Method,
+    COUNT(*) AS transactions
+FROM fact_ecommerce_sales
+GROUP BY Payment_Method
+ORDER BY transactions DESC;
+
+SELECT 
+    Year,
+    Month,
+    Month_Name,
+    SUM(Purchase_Amount) AS monthly_revenue
+FROM fact_ecommerce_sales
+GROUP BY Year, Month, Month_Name
+ORDER BY Year, Month;
+
+
+---CREATE TABLE DIM_CUSTOMER
+CREATE TABLE dim_customer (
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
+    User_Name VARCHAR(100),
+    Age INT,
+    Age_Group VARCHAR(20),
+    Country VARCHAR(50)
+);
+INSERT INTO dim_customer (User_Name, Age, Age_Group, Country)
+SELECT DISTINCT
+    User_Name,
+    Age,
+    Age_Group,
+    Country
+FROM fact_ecommerce_sales;
+
+SELECT COUNT(*) FROM dim_customer;
+
+
+CREATE DIM PRODUCT TABLE
+CREATE TABLE dim_product (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    Product_Category VARCHAR(50)
+);
+INSERT INTO dim_product (Product_Category)
+SELECT DISTINCT
+    Product_Category
+FROM fact_ecommerce_sales;
+
+
+--DATE_DIM TABLE
+CREATE TABLE dim_date (
+    date_id INT AUTO_INCREMENT PRIMARY KEY,
+    Transaction_Date DATE,
+    Year INT,
+    Month INT,
+    Month_Name VARCHAR(20)
+);
+INSERT INTO dim_date (Transaction_Date, Year, Month, Month_Name)
+SELECT DISTINCT
+    Transaction_Date,
+    Year,
+    Month,
+    Month_Name
+FROM fact_ecommerce_sales;
+
+
+CREATE PAYMENT TABLE--
+CREATE TABLE dim_payment (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    Payment_Method VARCHAR(30)
+);
+INSERT INTO dim_payment (Payment_Method)
+SELECT DISTINCT
+    Payment_Method
+FROM fact_ecommerce_sales;
+
+
+--NEXT STEP:
+ALTER TABLE fact_ecommerce_sales
+ADD customer_id INT,
+ADD product_id INT,
+ADD date_id INT,
+ADD payment_id INT;
+
+UPDATE fact_ecommerce_sales f
+JOIN dim_customer c
+  ON f.User_Name = c.User_Name
+ AND f.Age = c.Age
+ AND f.Country = c.Country
+SET f.customer_id = c.customer_id;
+UPDATE fact_ecommerce_sales f
+JOIN dim_product p
+  ON f.Product_Category = p.Product_Category
+SET f.product_id = p.product_id;
+UPDATE fact_ecommerce_sales f
+JOIN dim_date d
+  ON f.Transaction_Date = d.Transaction_Date
+SET f.date_id = d.date_id;
+UPDATE fact_ecommerce_sales f
+JOIN dim_payment p
+  ON f.Payment_Method = p.Payment_Method
+SET f.payment_id = p.payment_id;
+
+
+
+
+
+
